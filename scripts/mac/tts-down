@@ -1,0 +1,8 @@
+#!/bin/zsh
+# tts-down: stop the on-demand Qwen3-TTS server (frees ~5 GB of RAM). KeepAlive is off, nothing restarts it.
+
+if launchctl kill SIGTERM "gui/$(id -u)/com.weeeha.qwen3-tts" 2>/dev/null; then
+  echo "qwen3-tts stopped."
+else
+  echo "qwen3-tts was not running."
+fi

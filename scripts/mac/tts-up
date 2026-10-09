@@ -1,0 +1,32 @@
+#!/bin/zsh
+# tts-up: start the on-demand local Qwen3-TTS server (mlx-audio, port 8890) and preload the model.
+# OpenClaw's Speaker agent uses it as an OpenAI-compatible TTS endpoint; while it is down,
+# OpenClaw falls back to ElevenLabs. Costs ~4.8 GB of RAM while loaded (7.5 GB peak).
+
+LABEL="com.weeeha.qwen3-tts"
+MODEL="$HOME/models/qwen3-tts/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit"
+
+if ! curl -sf -o /dev/null --max-time 1 http://127.0.0.1:8890/docs; then
+  launchctl kickstart "gui/$(id -u)/$LABEL" || {
+    echo "kickstart failed. Reload with:"
+    echo "  launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/$LABEL.plist"
+    exit 1
+  }
+  echo -n "Starting server"
+  for i in {1..90}; do
+    curl -sf -o /dev/null --max-time 1 http://127.0.0.1:8890/docs && break
+    echo -n "."
+    sleep 1
+  done
+  echo ""
+fi
+
+echo "Preloading model..."
+if curl -sf -o /dev/null --max-time 120 -X POST http://127.0.0.1:8890/v1/audio/speech \
+  -H 'Content-Type: application/json' \
+  -d "{\"model\":\"$MODEL\",\"input\":\"ready\",\"voice\":\"Ryan\",\"response_format\":\"wav\"}"; then
+  echo "ready: http://127.0.0.1:8890/v1 (Qwen3-TTS 1.7B CustomVoice 8-bit via $LABEL)"
+else
+  echo "not answering; check ~/.local/state/qwen3-tts/server.log"
+  exit 1
+fi
