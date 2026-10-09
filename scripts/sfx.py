@@ -16,6 +16,7 @@ import subprocess
 import sys
 import time
 import urllib.parse
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -63,8 +64,11 @@ def api(path: str, payload=None):
     url = f"http://127.0.0.1:{LOCAL_PORT}{path}"
     data = json.dumps(payload).encode() if payload is not None else None
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        body = r.read()
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            body = r.read()
+    except urllib.error.HTTPError as e:
+        sys.exit(f"ComfyUI {e.code} on {path}:\n{e.read().decode(errors='replace')}")
     return json.loads(body) if body[:1] in (b"{", b"[") else body
 
 
