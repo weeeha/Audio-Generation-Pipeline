@@ -50,4 +50,21 @@ Replace `$HOME` in the file with the real path first, since `config patch` does 
 
 ## Art PC (CUDA)
 
-See `scripts/artpc/`.
+| | |
+|---|---|
+| Install | `scripts/artpc/install.ps1` |
+| Path | `G:\AI\Qwen3-TTS\` (venv, models, `say.py`). G: is a USB hard drive and must be mounted. |
+| Packages | `qwen-tts==0.1.1`, `torch 2.11.0+cu128` |
+| Models | `Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice` (4.2 GB), `Qwen/Qwen3-TTS-12Hz-1.7B-Base` (4.2 GB), official bf16 |
+| Run | `G:\AI\Qwen3-TTS\.venv\Scripts\python.exe G:\AI\Qwen3-TTS\say.py --text "..." --out out.wav` |
+
+No server on the PC yet. `say.py` loads the model per call (2.9 s from G:) and writes one WAV. Add `--ref-audio clip.wav --ref-text "..."` to clone a voice with the Base model, `--instruct "..."` for style, and `--lang Russian` to force a language.
+
+The day `llama-server` (Gemma 26B on `:8080`) holds most of the 3090. `--device auto` uses the GPU only with at least 6 GB of VRAM free and otherwise runs on the CPU. To guarantee the GPU, stop it first with `schtasks /end /tn llama-server` and restart it after with `schtasks /run /tn llama-server`. OpenClaw's primary model runs on that server.
+
+Measured 2026-10-08 on `cuda:0` while other jobs shared the GPU: 5.1 s of audio in 12.7 s (0.40x real time), slower than the Mac. The reference `qwen-tts` code runs one sample with no flash attention, so treat this as a floor. Output transcribed back correctly.
+
+Gotchas:
+
+- Xet downloads stalled at 244 MB on this machine. `install.ps1` sets `HF_HUB_DISABLE_XET=1`.
+- uv's cache is also on G:, so installs and downloads compete with anything else writing to that drive. With a second 12 GB download running alongside, the install took about 70 minutes.
