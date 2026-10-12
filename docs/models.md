@@ -32,3 +32,21 @@ ssh mvyho@100.114.149.53 "powershell -NoProfile -ExecutionPolicy Bypass -File st
 ```
 
 `snapshot_download` resumes, so rerunning after an interruption only fetches what is missing. Progress: `G:\models\higgs-audio-v2\download.log`. Throughput on 2026-10-08 was about 2-3 MB/s, so a full pull takes about an hour.
+
+## ACE-Step 1.5 (music)
+
+| | |
+|---|---|
+| Machines | Mac Studio `~/ACE-Step-1.5`, Art PC `G:\AI\ACE-Step-1.5` |
+| Installed | 2026-04 from github.com/ACE-Step/ACE-Step-1.5 (uv venv, models in `checkpoints\`) |
+| License | MIT |
+
+| Folder in `checkpoints` | What | Size |
+|---|---|---|
+| `acestep-v15-turbo` | 2B diffusion model, 8 steps | 4.5 GB |
+| `acestep-5Hz-lm-1.7B` | planner language model | 3.5 GB |
+| `Qwen3-Embedding-0.6B` | text encoder | 1.1 GB |
+| `vae` | audio decoder | 0.3 GB |
+
+Usage: [`music.md`](music.md).
+
