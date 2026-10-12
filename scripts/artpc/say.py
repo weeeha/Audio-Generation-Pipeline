@@ -5,9 +5,10 @@ Preset voice (CustomVoice model):
 Voice clone (Base model), from a 3+ second clip and its transcript:
     say.py --text "Hello" --ref-audio me.wav --ref-text "What I said in the clip." --out hello.wav
 
-The day llama-server keeps ~21.7 of the 3090's 24 GB, so --device auto uses the GPU only when
-enough VRAM is free and otherwise runs on the CPU. Stop the server first for GPU speed:
-    schtasks /end /tn llama-server    ...    schtasks /run /tn llama-server
+The day llama-server keeps ~21 of the 3090's 24 GB, so --device auto uses the GPU only when
+enough VRAM is free and otherwise runs on the CPU. For GPU speed, pause llama-server through the
+llama-hold watcher (it relaunches the server seconds after a plain schtasks /end):
+    create C:\\Users\\mvyho\\llama-hold.manual  ...  delete it afterwards
 """
 
 import argparse
@@ -58,7 +59,7 @@ def pick_device(requested: str) -> tuple[str, str]:
         return "cuda:0", f"{free:.1f} GB VRAM free"
     print(
         f"Only {free:.1f} GB of VRAM free (needs {MIN_FREE_VRAM_GB:.0f}), running on the CPU. "
-        "For GPU speed: schtasks /end /tn llama-server, then schtasks /run /tn llama-server after."
+        "For GPU speed, pause llama-server: create C:\\Users\\mvyho\\llama-hold.manual, delete it after."
     )
     return "cpu", f"{free:.1f} GB VRAM free"
 
