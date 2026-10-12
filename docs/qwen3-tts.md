@@ -36,6 +36,8 @@ Gotchas:
 - launchd's default `PATH` has no `/opt/homebrew/bin`, so MP3 and Opus encoding fail with "ffmpeg not found" after the HTTP 200 has already gone out. The client then sees a cut-off stream (OpenClaw reports `openai: terminated`). The plist sets `PATH` for this reason. WAV needs no ffmpeg.
 - A cold start after `launchctl bootstrap` can take over 30 s, so `tts-up` waits up to 90 s.
 - `hf download` can stall on a large file. Kill it and run it again; it resumes.
+- The server loads whatever the request's `model` field names. Send the local folder path, as `tts-up` and the OpenClaw config do. A Hugging Face repo id such as `mlx-community/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit` makes it download a second copy into `~/.cache/huggingface/hub` inside the request, and the request hangs (seen 2026-10-11).
+- A hung download also blocks `tts-down`: the port closes but the process waits on the download, so `tts-up` then times out. `launchctl kickstart -k gui/$(id -u)/com.weeeha.qwen3-tts` kills and relaunches it.
 
 ## OpenClaw
 
