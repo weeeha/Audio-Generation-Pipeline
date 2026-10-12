@@ -42,14 +42,16 @@ The Hugging Face repos were converted to the Transformers-native format in April
 
 ## Verified
 
-2026-10-12, on the Mac Studio's GPU (MPS), with the same `higgs.py` and the model folders pointed at a local copy, because the Art PC was offline. Plain speech and a voice clone from a 2.2-second clip both transcribed back word for word with Whisper.
+2026-10-12 on the Art PC's 3090, both runs with `--free-gpu` while llama-server was loaded:
 
 | | Audio | Load | Generate |
 |---|---|---|---|
-| Plain, seed 1234 | 3.7 s | 7.8 s | 19.5 s (0.19x real time, includes warm-up) |
-| Clone, seed 1234 | 4.0 s | 5.3 s | 8.3 s (0.48x real time) |
+| Plain, seed 1234 | 4.4 s | 185.2 s (cold, 11.5 GB from the G: USB disk) | 4.9 s (0.90x real time) |
+| Clone from a 2.2 s clip, seed 1234 | 3.5 s | 8.9 s (warm cache) | 3.7 s (0.94x real time) |
 
-Peak memory was 14.3 GB. Not yet run on the Art PC's 3090.
+Both transcribed back correctly with Whisper. Pausing through `llama-hold` freed the GPU within about 2 seconds, and llama-server answered `/health` again about 25 seconds after the flag was removed (15 s grace plus a 10 s load from cache). The flag was gone afterwards and one llama-server was running.
+
+Also run on the Mac Studio's GPU (MPS) with the model folders pointed at a local copy: plain 3.7 s of audio in 19.5 s and clone 4.0 s in 8.3 s, peak memory 14.3 GB.
 
 ## Install
 
