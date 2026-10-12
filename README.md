@@ -5,6 +5,7 @@ Local audio generation on the Mac Studio and the Art PC (RTX 3090).
 - [`docs/models.md`](docs/models.md): which models are installed, where, and how to re-download them.
 - [`docs/sfx.md`](docs/sfx.md): text-to-sound-effect with Stable Audio 3 small-sfx, driven from the Mac.
 - [`docs/qwen3-tts.md`](docs/qwen3-tts.md): Qwen3-TTS text-to-speech on both machines, and how OpenClaw's Speaker agent uses it.
+- [`docs/higgs.md`](docs/higgs.md): Higgs Audio v2 text-to-speech and voice cloning on the Art PC.
 - [`scripts/mac/`](scripts/mac/): install script, launch agent and `tts-up` / `tts-down` for the Mac.
 - [`scripts/artpc/`](scripts/artpc/): scripts that run on the Art PC.
 - [`config/openclaw/`](config/openclaw/): OpenClaw config patches.
@@ -13,7 +14,7 @@ Local audio generation on the Mac Studio and the Art PC (RTX 3090).
 
 - **Text to SFX.** `scripts/sfx.py` sends a prompt to a second ComfyUI instance on the Art PC (`127.0.0.1:8189`, reached through an SSH tunnel) and saves one WAV per take.
 - **Text to speech.** Qwen3-TTS runs on the Mac as an on-demand OpenAI-compatible server (`127.0.0.1:8890`) and on the Art PC as a one-shot script (`say.py`).
-- **Higgs Audio v2.** The 3B base model and its tokenizer are downloaded to `G:\models\higgs-audio-v2\` on the Art PC. This repo holds the download scripts and notes; there is no generation script for it yet.
+- **Higgs Audio v2.** Boson AI's 3B base model, for expressive speech and voice cloning from a short clip. `higgs.py` runs it on the Art PC from `G:\models\higgs-audio-v2\`, and needs the GPU to itself, so it can pause llama-server for the run.
 
 ## Run
 
@@ -41,10 +42,11 @@ tts-down
 docs/models.md             installed models, paths, licences
 docs/sfx.md                SFX setup, measurements, operating the server
 docs/qwen3-tts.md          Qwen3-TTS on both machines, OpenClaw wiring
+docs/higgs.md              Higgs Audio v2 on the Art PC
 scripts/sfx.py             prompt in, WAVs out
 scripts/mac/               Qwen3-TTS install, launch agent, tts-up / tts-down
 scripts/artpc/             PowerShell and Python files that run on the Art PC
                            (SFX server start/stop, ComfyUI launcher, Higgs download,
-                           Qwen3-TTS install and say.py)
+                           install and higgs.py, Qwen3-TTS install and say.py)
 config/openclaw/           OpenClaw config patch for the Speaker agent
 ```

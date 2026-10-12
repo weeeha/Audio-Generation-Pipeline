@@ -11,7 +11,7 @@ Where each model lives, how it got there, and what to watch for.
 | Downloaded | 2026-10-08 |
 | License | "other" on Hugging Face (Boson Higgs Audio 2 Community License). Read the terms before commercial use. |
 
-Two repos, both needed:
+Two repos, both needed. To generate speech with them, see [`higgs.md`](higgs.md).
 
 | Folder | Hugging Face repo | Size |
 |---|---|---|
