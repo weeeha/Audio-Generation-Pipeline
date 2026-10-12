@@ -18,7 +18,7 @@ uv pip install --python $Py torch==2.11.0 torchaudio==2.11.0 --index-url https:/
 # The downloaded model folders are in the Transformers-native format (HiggsAudioV2ForConditionalGeneration,
 # transformers >= 5.3.0), so Boson's older boson_multimodal package does not load them.
 # No torchcodec (on Windows it needs shared FFmpeg DLLs): higgs.py loads reference clips with librosa itself.
-uv pip install --python $Py transformers==5.17.0 accelerate soundfile librosa
+uv pip install --python $Py transformers==5.17.0 accelerate==1.15.0 soundfile==0.14.0 librosa==1.0.0
 
 & $Py -c "import torch, transformers; print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), 'transformers', transformers.__version__)"
 Write-Host "Installed. Try: $Py $Root\higgs.py --text 'Hello' --out hello.wav --free-gpu"

@@ -6,8 +6,8 @@ Voice clone, from a short clip and its transcript:
     higgs.py --text "Hello there." --ref-audio me.wav --ref-text "What I said in the clip." --out hello.wav
 
 The model needs about 14 GB of VRAM, and the day llama-server keeps about 21 of the 3090's 24 GB.
---free-gpu stops llama-server for the run and starts it again afterwards (OpenClaw's primary model
-is down for those minutes). Without it, the script stops with a message instead of crawling on the CPU.
+--free-gpu pauses llama-server for the run and resumes it afterwards (OpenClaw's primary model is
+down for those minutes). Without it, the script stops with a message instead of crawling on the CPU.
 
 Runs offline from the local folders in G:\\models\\higgs-audio-v2 and never downloads anything.
 """
@@ -45,6 +45,11 @@ SAMPLE_RATE = 24000
 MIN_FREE_VRAM_GB = 14.0
 LLAMA_TASK = "llama-server"
 LLAMA_HEALTH = "http://127.0.0.1:8080/health"
+# The llama-hold watcher relaunches llama-server seconds after a plain stop. While this flag file
+# exists it stops every llama-server and keeps them down, and it relaunches the day server 15 s
+# after the file is gone. Note that the hold also stops the CPU night server on :8081.
+HOLD_TASK = "llama-hold"
+HOLD_FLAG = Path(r"C:\Users\mvyho\llama-hold.manual")
 SYSTEM_PROMPT = "Generate audio following instruction."
 
 
@@ -72,9 +77,24 @@ def llama_up() -> bool:
         return False
 
 
-def stop_llama() -> None:
-    print("Stopping llama-server to free the GPU...", flush=True)
+def hold_running() -> bool:
+    out = subprocess.run(["schtasks", "/query", "/tn", HOLD_TASK, "/fo", "csv", "/nh"],
+                         capture_output=True, text=True)
+    return out.returncode == 0 and '"Running"' in out.stdout
+
+
+def pause_llama() -> str:
+    """Stop llama-server and return how, so resume_llama() undoes it the same way."""
+    if hold_running():
+        print(f"Pausing llama-server through llama-hold ({HOLD_FLAG})...", flush=True)
+        HOLD_FLAG.touch()
+        return "hold"
+    print("Stopping the llama-server task...", flush=True)
     subprocess.run(["schtasks", "/end", "/tn", LLAMA_TASK], capture_output=True, text=True)
+    return "task"
+
+
+def wait_for_free_vram() -> None:
     for _ in range(60):
         free = free_vram_gb() or 0.0
         if free >= MIN_FREE_VRAM_GB:
@@ -82,21 +102,24 @@ def stop_llama() -> None:
             return
         time.sleep(1)
     raise SystemExit(
-        f"llama-server stopped but only {free_vram_gb() or 0:.1f} GB of VRAM is free; "
+        f"llama-server paused but only {free_vram_gb() or 0:.1f} GB of VRAM is free; "
         "something else holds the GPU (check nvidia-smi)."
     )
 
 
-def start_llama() -> None:
-    print("Starting llama-server again...", flush=True)
-    subprocess.run(["schtasks", "/run", "/tn", LLAMA_TASK], capture_output=True, text=True)
-    # It loads a 17 GB model from the G: USB disk, so allow a few minutes.
+def resume_llama(how: str) -> None:
+    print("Resuming llama-server...", flush=True)
+    if how == "hold":
+        HOLD_FLAG.unlink(missing_ok=True)
+    else:
+        subprocess.run(["schtasks", "/run", "/tn", LLAMA_TASK], capture_output=True, text=True)
+    # llama-hold waits 15 s, then the model loads from the G: USB disk (seconds when cached).
     for _ in range(100):
         time.sleep(3)
         if llama_up():
             print("  llama-server is back on :8080", flush=True)
             return
-    print("  llama-server is not answering after 5 minutes. Check: schtasks /query /tn llama-server", flush=True)
+    print("  llama-server is not answering after 5 minutes. Check C:\\Users\\mvyho\\llama-hold.log", flush=True)
 
 
 def load_processor(device: str) -> HiggsAudioV2Processor:
@@ -173,9 +196,9 @@ def main() -> None:
     if a.ref_audio and not a.ref_text:
         p.error("--ref-audio needs --ref-text, the transcript of the clip")
 
-    restart_llama = False
+    paused, was_up = None, False
     device = a.device
-    # Everything after llama-server may have been stopped sits in this try, so it always comes back.
+    # Everything after llama-server may have been paused sits in this try, so it always comes back.
     try:
         if device == "auto":
             free = free_vram_gb()
@@ -187,13 +210,15 @@ def main() -> None:
                         f"Only {free:.1f} GB of VRAM free; Higgs needs about {MIN_FREE_VRAM_GB:.0f}. "
                         "Rerun with --free-gpu to pause llama-server for this run."
                     )
-                restart_llama = llama_up()
-                stop_llama()
+                was_up = llama_up()
+                paused = pause_llama()
+                wait_for_free_vram()
             device = "cuda:0"
         wav, load_s, gen_s = generate(a, device)
     finally:
-        if restart_llama:
-            start_llama()
+        # Always remove a hold flag this run created; restart a plain task only if it was running.
+        if paused == "hold" or (paused == "task" and was_up):
+            resume_llama(paused)
 
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     sf.write(a.out, wav.float().numpy(), SAMPLE_RATE)

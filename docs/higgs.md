@@ -27,7 +27,12 @@ Output is a 24 kHz mono WAV.
 
 The model is 5.8B parameters in bf16 (11.5 GB of weights) plus a 0.8 GB audio tokenizer, so it needs about 14 GB of VRAM. The day llama-server (Gemma 26B on `:8080`) holds about 21 of the 3090's 24 GB, which leaves too little.
 
-Without `--free-gpu`, `higgs.py` stops with a message when there is not enough VRAM. With it, the script ends the `llama-server` scheduled task, waits for the memory to come free, generates, then runs the task again and waits for `:8080/health`. It only restarts llama-server if it was running before. OpenClaw's primary model is down for those minutes and OpenClaw uses its fallback chain.
+Without `--free-gpu`, `higgs.py` stops with a message when there is not enough VRAM. With it, the script pauses llama-server, waits for the memory to come free, generates, resumes llama-server and waits for `:8080/health`. OpenClaw's primary model is down for those minutes and OpenClaw uses its fallback chain.
+
+How it pauses depends on the `llama-hold` watcher (`C:\Users\mvyho\llama-hold.ps1`, a logon task):
+
+- **`llama-hold` running:** `schtasks /end /tn llama-server` does not work, because the watcher relaunches llama-server within 5 seconds (seen 2026-10-12). The script creates the watcher's manual flag `C:\Users\mvyho\llama-hold.manual` instead, which makes it stop every llama-server and keep them down. It deletes the flag afterwards, even when generation fails, and the watcher relaunches the day server 15 seconds later. The hold also stops the CPU night server on `:8081`; the watcher relaunches that one only before 07:00.
+- **`llama-hold` not running:** the script ends the `llama-server` task and runs it again afterwards, if it was running before.
 
 ## How it loads
 
@@ -55,7 +60,7 @@ scp scripts/artpc/higgs.py scripts/artpc/install-higgs.ps1 mvyho@100.114.149.53:
 ssh mvyho@100.114.149.53 "powershell -NoProfile -ExecutionPolicy Bypass -File install-higgs.ps1"
 ```
 
-`install-higgs.ps1` creates the venv with the same torch build as `G:\AI\Qwen3-TTS` (2.11.0, CUDA 12.8), so uv reuses its cached wheels, then adds `transformers==5.17.0`, `accelerate`, `soundfile` and `librosa`.
+`install-higgs.ps1` creates the venv with the same torch build as `G:\AI\Qwen3-TTS` (2.11.0, CUDA 12.8), so uv reuses its cached wheels, then adds torchaudio, `transformers==5.17.0`, `accelerate`, `soundfile` and `librosa`, all pinned to the versions tested on 2026-10-12.
 
 ## Gotchas
 
