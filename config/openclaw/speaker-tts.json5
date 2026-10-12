@@ -1,0 +1,21 @@
+{
+  agents: {
+    entries: {
+      speaker: {
+        tts: {
+          provider: "openai",
+          providers: {
+            openai: {
+              apiKey: "local",
+              baseUrl: "http://127.0.0.1:8890/v1",
+              model: "$HOME/models/qwen3-tts/Qwen3-TTS-12Hz-1.7B-CustomVoice-8bit",
+              speakerVoice: "Ryan",
+              responseFormat: "wav",
+              extraBody: { lang_code: "auto" },
+            },
+          },
+        },
+      },
+    },
+  },
+}
