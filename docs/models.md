@@ -47,6 +47,7 @@ ssh mvyho@100.114.149.53 "powershell -NoProfile -ExecutionPolicy Bypass -File st
 | `acestep-5Hz-lm-1.7B` | planner language model | 3.5 GB |
 | `Qwen3-Embedding-0.6B` | text encoder | 1.1 GB |
 | `vae` | audio decoder | 0.3 GB |
+| `acestep-v15-xl-turbo` | 4B diffusion model, 8 steps. Art PC only, copied 2026-10-12 from `ACE-Step/acestep-v15-xl-turbo` | 20 GB |
 
 Usage: [`music.md`](music.md).
 

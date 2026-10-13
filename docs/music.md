@@ -34,7 +34,7 @@ It is weak at sound effects; use [`sfx.md`](sfx.md) for those.
 | | Mac Studio | Art PC |
 |---|---|---|
 | Install | `~/ACE-Step-1.5` | `G:\AI\ACE-Step-1.5` |
-| Models | `acestep-v15-turbo` (2B), `acestep-5Hz-lm-1.7B`, Qwen3 embedding, VAE (9.4 GB) | same, plus `acestep-v15-xl-turbo` (4B) |
+| Models | `acestep-v15-turbo` (2B), `acestep-5Hz-lm-1.7B`, Qwen3 embedding, VAE (9.4 GB) | same, plus `acestep-v15-xl-turbo` (4B, 20 GB on disk) |
 | Server | started by `music.py` on `127.0.0.1:8001`, stopped afterwards | `start-music-server.ps1` on `127.0.0.1:8001`, reached through an SSH tunnel |
 | Planner backend | MLX | PyTorch (vLLM does not run on Windows) |
 
@@ -57,11 +57,14 @@ Deploy the PC scripts with `scp scripts/artpc/*-music-server.ps1 mvyho@100.114.1
 | | Model load | Generate | Whole run |
 |---|---|---|---|
 | Mac, turbo | 52 s (first request) | 21 s warm | 51 s for a 20 s instrumental, cold start to stop |
-| Art PC 3090, turbo | 190 s (from the G: USB disk) | 27 s (planner 11 s) | 224 s including the llama-server pause and resume |
+| Art PC 3090, turbo | 190 s (cold, from the G: USB disk) | 27 s (planner 11 s) | 224 s including the llama-server pause and resume |
+| Art PC 3090, XL turbo | 40 s (file cache still warm from the copy) | 19 s (planner 6 s) | 68 s, plus the llama-server reload below |
 
-For turbo the 3090 is no faster than the Mac, because the planner runs on plain PyTorch on Windows. The PC is the place for the XL model.
+Turbo and XL got the same prompt, lyrics and seed; both sang the lyrics. Which sounds better is for the ear: the planner picked C major for one and G major for the other, so the takes differ in more than the model. For turbo the 3090 is no faster than the Mac, because the planner runs on plain PyTorch on Windows. The PC is the place for XL.
 
 ## Gotchas
+
+- After XL, llama-server took over 4 minutes to come back instead of about 10 seconds. Loading 20 GB of XL pushed the day model's 16 GB GGUF out of the Windows file cache, and `start-llama.bat` loads it through mmap without `--no-mmap`, which reads the G: disk at a few MB/s. Reading the file once (`cmd /c copy /b G:\models\gemma-4-26B-A4B-it-UD-Q4_K_XL.gguf NUL`, 140 s) refilled the cache and it was up 45 s later. The lasting fix is `--no-mmap` in `start-llama.bat`.
 
 - Next to llama-server only about 2 GB of VRAM is free, and ACE-Step runs out of memory even in its smallest mode. `start-music-server.ps1` refuses below 8 GB.
 - ACE-Step reads the card's total memory, not the free memory, to choose its tier. Without `MAX_CUDA_VRAM` it would pick the top tier next to llama-server and overcommit the card.
