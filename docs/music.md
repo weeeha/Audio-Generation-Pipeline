@@ -10,6 +10,8 @@ python3 scripts/music.py "..." --instrumental --host artpc --free-gpu --model ac
 
 Lyrics use section tags such as `[Verse]`, `[Chorus]`, `[Bridge]`; `--instrumental` sends `[Instrumental]`. Output is 48 kHz stereo in `music-out/`.
 
+`--jobs cues.json` runs a list of cues in one server session, so the Art PC pauses llama-server once for the whole list. Each entry sets any of `name`, `prompt`, `lyrics`, `lyrics_file`, `instrumental`, `seconds`, `takes`, `seed`, `bpm`, `key`, `lang`; the command line fills in the rest. In a batch of takes only the first uses `--seed`; the others get random seeds, which the file names and `.json` record.
+
 | Flag | Default | |
 |---|---|---|
 | `--seconds` | 30 | 10 to 600 |
@@ -48,7 +50,9 @@ On the Art PC, `--free-gpu` is required. `start-music-server.ps1`:
 
 `stop-music-server.ps1` stops the server and resumes llama-server. `music.py` calls it in a `finally`, so it also runs when generation fails.
 
-Deploy the PC scripts with `scp scripts/artpc/*-music-server.ps1 mvyho@100.114.149.53:G:/AI/music/`. Set `MUSIC_HOST` to reach the PC another way, such as `mvyho@192.168.100.2` over the direct cable.
+A `finally` on the Mac does not help when the client itself dies. On 2026-10-12 a killed `music.py` left llama-server paused for about 80 minutes. Now `start-music-server.ps1` writes the pause marker with a session token and starts a detached `music-guard.ps1` with a lease (`music.py` sizes it at 15 minutes plus 2 per minute of requested audio). If the marker still carries that token when the lease runs out, the guard runs `stop-music-server.ps1` itself. Tested with a 1-minute lease and the client killed after 20 seconds: the guard stopped ACE-Step and removed the hold flag at 1 minute.
+
+Deploy the PC scripts with `scp scripts/artpc/*-music-server.ps1 scripts/artpc/music-guard.ps1 mvyho@100.114.149.53:G:/AI/music/`. Set `MUSIC_HOST` to reach the PC another way, such as `mvyho@192.168.100.2` over the direct cable.
 
 ## Measured (2026-10-12)
 
