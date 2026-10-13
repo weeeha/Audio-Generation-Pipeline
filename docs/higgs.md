@@ -15,6 +15,8 @@ Clone a voice from a short clip and its exact transcript:
 | Flag | Default | |
 |---|---|---|
 | `--scene` | "Audio is recorded from a quiet room." | Recording environment, rendered as the scene description |
+| `--speaker` | none | `"SPEAKER0: feminine"`, repeat per voice, for `[SPEAKERn]` dialogue |
+| `--text-file` | | Read the text from a UTF-8 file instead of `--text` |
 | `--temperature` | 0.3 | Boson's recommended value. `--greedy` for deterministic output |
 | `--seed` | random | Same seed and settings give the same take |
 | `--max-new-tokens` | 1200 | 25 tokens per second of audio, so about 48 s |
@@ -22,6 +24,16 @@ Clone a voice from a short clip and its exact transcript:
 | `--free-gpu` | off | Stop llama-server for the run and start it again afterwards |
 
 Output is a 24 kHz mono WAV.
+
+Dialogue: put one `[SPEAKER0]` / `[SPEAKER1]` tag at the start of each line in a text file and describe each voice with `--speaker`. Tagged text switches to the system message from Boson's model card, and each speaker description becomes its own scene line.
+
+```powershell
+... higgs.py --text-file scene.txt --scene "Recorded on the command deck of a large airship, low engine hum." `
+  --speaker "SPEAKER0: feminine, crisp and professional" --speaker "SPEAKER1: masculine, deep and calm" `
+  --max-new-tokens 1600 --out scene.wav --free-gpu
+```
+
+The prompt, the speaker descriptions and the output share the 2048-position context; an 8-line, 330-token script leaves room for about 65 seconds of speech.
 
 ## GPU
 
@@ -50,6 +62,8 @@ The Hugging Face repos were converted to the Transformers-native format in April
 | Clone from a 2.2 s clip, seed 1234 | 3.5 s | 8.9 s (warm cache) | 3.7 s (0.94x real time) |
 
 Both transcribed back correctly with Whisper. Pausing through `llama-hold` freed the GPU within about 2 seconds, and llama-server answered `/health` again about 25 seconds after the flag was removed (15 s grace plus a 10 s load from cache). The flag was gone afterwards and one llama-server was running.
+
+Dialogue, 2026-10-12 on the 3090 with llama-server paused: an 8-line command-post scene for two voices came out as 48.3 s of audio in 57.3 s (seed 1234, after a 189 s cold load) and 45.8 s in 44.2 s (seed 777, warm). Whisper heard every line of both takes in order.
 
 Also run on the Mac Studio's GPU (MPS) with the model folders pointed at a local copy: plain 3.7 s of audio in 19.5 s and clone 4.0 s in 8.3 s, peak memory 14.3 GB.
 
