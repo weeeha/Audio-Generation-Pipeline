@@ -7,7 +7,10 @@
 # reports as free: about 23 GB with llama-server paused (full model, 1.7B planner, XL fits).
 # Next to llama-server only about 2 GB is free, and even ACE-Step's smallest mode runs out of
 # memory loading the model there (2026-10-12), so the script refuses to start below 8 GB.
-param([string]$Model = 'acestep-v15-turbo', [switch]$FreeGpu)
+#
+# -LeaseMinutes bounds the pause: a detached music-guard.ps1 resumes llama-server after that long
+# if the client never ran stop-music-server.ps1. music.py sizes it from the cue list.
+param([string]$Model = 'acestep-v15-turbo', [switch]$FreeGpu, [int]$LeaseMinutes = 30)
 $ErrorActionPreference = 'Stop'
 $port   = 8001
 $ace    = 'G:\AI\ACE-Step-1.5'
@@ -22,16 +25,19 @@ New-Item -ItemType Directory -Force $dir | Out-Null
 if (Answers "http://127.0.0.1:$port/v1/models") { "already running on :$port"; exit 0 }
 
 if ($FreeGpu -and (Answers 'http://127.0.0.1:8080/health')) {
+  $token = [guid]::NewGuid().ToString('N')
   if ((schtasks /query /tn llama-hold /fo csv /nh) -match '"Running"') {
+    Set-Content $marker "hold $token"
     New-Item -ItemType File -Force $flag | Out-Null
-    Set-Content $marker 'hold'
   } else {
+    Set-Content $marker "task $token"
     schtasks /end /tn llama-server | Out-Null
-    Set-Content $marker 'task'
   }
+  $guard = "powershell -NoProfile -ExecutionPolicy Bypass -File `"$dir\music-guard.ps1`" -Token $token -Minutes $LeaseMinutes"
+  Invoke-CimMethod Win32_Process -MethodName Create -Arguments @{ CommandLine = $guard; CurrentDirectory = $dir } | Out-Null
   $t = Get-Date
   do { Start-Sleep 1 } until ((Free) -gt 20000 -or ((Get-Date) - $t).TotalSeconds -gt 60)
-  "paused llama-server ($(Get-Content $marker)); $(Free) MiB free"
+  "paused llama-server ($(((Get-Content $marker) -split ' ')[0])), guard lease $LeaseMinutes min; $(Free) MiB free"
 }
 
 $freeGb = [math]::Floor((Free) / 1024)

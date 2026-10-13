@@ -14,7 +14,7 @@ if (Test-Path $marker) {
   # Let the GPU memory come free first, so llama-server does not load into a full card.
   $t = Get-Date
   do { Start-Sleep 1 } until ([int](nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits) -gt 20000 -or ((Get-Date) - $t).TotalSeconds -gt 30)
-  $how = (Get-Content $marker).Trim()
+  $how = ((Get-Content $marker).Trim() -split ' ')[0]   # 'hold <token>' or 'task <token>'
   if ($how -eq 'hold') { Remove-Item $flag -ErrorAction SilentlyContinue } else { schtasks /run /tn llama-server | Out-Null }
   Remove-Item $marker
   "resumed llama-server ($how)"

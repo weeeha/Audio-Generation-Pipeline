@@ -147,7 +147,10 @@ def generate(base: str, a: argparse.Namespace) -> None:
             continue
         with urllib.request.urlopen(base + take["file"], timeout=300) as r:
             data = r.read()
-        seed = str(take.get("seed_value", "")).split(",")[0] or str(i)
+        # seed_value lists the whole batch ("70,2050038755"): take i used entry i. Only the first is
+        # the --seed you passed; the others are random, and the .json keeps them for a re-run.
+        seeds = str(take.get("seed_value", "")).split(",")
+        seed = seeds[i] if i < len(seeds) and seeds[i] else str(i)
         dest = a.out / f"{slug}_{take.get('dit_model', a.model)}_s{seed}_{i}.{a.format}"
         dest.write_bytes(data)
         meta = {k: take.get(k) for k in ("metas", "seed_value", "lm_model", "dit_model")}
@@ -207,7 +210,10 @@ def main() -> None:
     if a.keep:
         print("--keep ignored with --free-gpu: llama-server must come back.", flush=True)
         a.keep = False
-    start_args = ["-Model", a.model] + (["-FreeGpu"] if a.free_gpu else [])
+    # The PC resumes llama-server by itself after this long, in case this client dies mid-run.
+    audio_min = sum(job.seconds * job.takes for job in jobs) / 60
+    lease = 15 + int(2 * audio_min + 0.999)
+    start_args = ["-Model", a.model, "-LeaseMinutes", str(lease)] + (["-FreeGpu"] if a.free_gpu else [])
     try:
         pc("start-music-server.ps1", *start_args)
         tunnel = open_tunnel()
