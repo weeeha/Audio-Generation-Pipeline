@@ -4,6 +4,7 @@
     python3 scripts/music.py "warm indie folk, acoustic guitar, gentle female vocal" --lyrics-file song.txt --seconds 60
     python3 scripts/music.py "cinematic orchestral build" --instrumental --seconds 45 --takes 2
     python3 scripts/music.py "..." --instrumental --host artpc --free-gpu --model acestep-v15-xl-turbo
+    python3 scripts/music.py --jobs cues.json --host artpc --free-gpu   # several cues, one server session
 
 The Mac (default) runs ACE-Step's API server from ~/ACE-Step-1.5 on 127.0.0.1:8001. It starts the
 server when needed and stops it afterwards, unless it was already running or --keep is given.
@@ -12,6 +13,10 @@ server when needed and stops it afterwards, unless it was already running or --k
 --free-gpu, which pauses llama-server for the run: next to it only about 2 GB of VRAM is free, and
 ACE-Step runs out of memory even in its smallest mode. The PC launcher tells ACE-Step how much memory
 nvidia-smi reports as free, because ACE-Step otherwise sizes itself from the card's total.
+
+--jobs takes a JSON list of cues; each entry sets any of name, prompt, lyrics, lyrics_file,
+instrumental, seconds, takes, seed, bpm, key, lang, and the command line fills in the rest. All cues
+run in one server session, so the Art PC pauses llama-server once.
 
 Stdlib only. Files land in ./music-out/ with a .json next to each one (seed, BPM, key, lyrics).
 """
@@ -135,7 +140,7 @@ def generate(base: str, a: argparse.Namespace) -> None:
     if item["status"] == 2:
         sys.exit(f"ACE-Step failed:\n{json.dumps(item, indent=2)[:2000]}")
 
-    slug = re.sub(r"[^a-z0-9]+", "-", a.prompt.lower()).strip("-")[:40]
+    slug = re.sub(r"[^a-z0-9]+", "-", (a.name or a.prompt).lower()).strip("-")[:40]
     a.out.mkdir(parents=True, exist_ok=True)
     for i, take in enumerate(json.loads(item["result"])):
         if not take.get("file"):
@@ -154,7 +159,9 @@ def generate(base: str, a: argparse.Namespace) -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("prompt", help="Style, instruments, mood, vocal type")
+    p.add_argument("prompt", nargs="?", help="Style, instruments, mood, vocal type")
+    p.add_argument("--jobs", type=Path, help="JSON list of cues to run in one server session")
+    p.add_argument("--name", help="File name prefix instead of the prompt")
     lyr = p.add_mutually_exclusive_group()
     lyr.add_argument("--lyrics", help="Lyrics with [Verse] / [Chorus] tags")
     lyr.add_argument("--lyrics-file")
@@ -174,14 +181,21 @@ def main() -> None:
     p.add_argument("--keep", action="store_true", help="Leave the ACE-Step server running afterwards")
     p.add_argument("--out", type=Path, default=Path(__file__).resolve().parent.parent / "music-out")
     a = p.parse_args()
-    if not 1 <= a.takes <= 8:
-        p.error("--takes must be 1 to 8")
+    jobs = [a]
+    if a.jobs:
+        jobs = [argparse.Namespace(**{**vars(a), **cue}) for cue in json.loads(a.jobs.read_text(encoding="utf-8"))]
+    for job in jobs:
+        if not job.prompt:
+            p.error("a prompt is required (positional, or 'prompt' in each --jobs entry)")
+        if not 1 <= job.takes <= 8:
+            p.error("--takes must be 1 to 8")
 
     if a.host == "mac":
         base = f"http://127.0.0.1:{PORT}"
         proc = None if server_up(base) else start_mac_server(a.model)
         try:
-            generate(base, a)
+            for job in jobs:
+                generate(base, job)
         finally:
             if proc and not a.keep:
                 proc.terminate()
@@ -198,7 +212,8 @@ def main() -> None:
         pc("start-music-server.ps1", *start_args)
         tunnel = open_tunnel()
         try:
-            generate(f"http://127.0.0.1:{TUNNEL_PORT}", a)
+            for job in jobs:
+                generate(f"http://127.0.0.1:{TUNNEL_PORT}", job)
         finally:
             tunnel.terminate()
     finally:
