@@ -4,6 +4,8 @@ Plain text to speech:
     higgs.py --text "Hello there." --out hello.wav
 Voice clone, from a short clip and its transcript:
     higgs.py --text "Hello there." --ref-audio me.wav --ref-text "What I said in the clip." --out hello.wav
+Dialogue, one [SPEAKERn] tag per line, voices described with --speaker:
+    higgs.py --text-file scene.txt --speaker "SPEAKER0: feminine" --speaker "SPEAKER1: masculine" --out scene.wav
 
 The model needs about 14 GB of VRAM, and the day llama-server keeps about 21 of the 3090's 24 GB.
 --free-gpu pauses llama-server for the run and resumes it afterwards (OpenClaw's primary model is
@@ -51,6 +53,13 @@ LLAMA_HEALTH = "http://127.0.0.1:8080/health"
 HOLD_TASK = "llama-hold"
 HOLD_FLAG = Path(r"C:\Users\mvyho\llama-hold.manual")
 SYSTEM_PROMPT = "Generate audio following instruction."
+# Boson's model card uses this system message for [SPEAKER*]-tagged dialogue.
+DIALOGUE_SYSTEM_PROMPT = (
+    "You are an AI assistant designed to convert text into speech.\n"
+    "If the user's message includes a [SPEAKER*] tag, do not read out the tag and generate speech for the "
+    "following text, using the specified voice.\n"
+    "If no speaker tag is present, select a suitable voice on your own."
+)
 
 
 def free_vram_gb() -> float | None:
@@ -136,10 +145,14 @@ def load_processor(device: str) -> HiggsAudioV2Processor:
     return HiggsAudioV2Processor(feature_extractor, tokenizer, audio_tokenizer, chat_template=chat_template)
 
 
-def build_conversation(text: str, scene: str, ref_audio: str | None, ref_text: str | None) -> list[dict]:
+def build_conversation(text: str, scene: str, ref_audio: str | None, ref_text: str | None,
+                       speakers: list[str] | None = None) -> list[dict]:
+    system = DIALOGUE_SYSTEM_PROMPT if "[SPEAKER" in text else SYSTEM_PROMPT
+    # Each speaker description is its own scene item ("SPEAKER0: feminine"), as in the model card.
+    scene_items = [scene, *(speakers or [])]
     conversation = [
-        {"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]},
-        {"role": "scene", "content": [{"type": "text", "text": scene}]},
+        {"role": "system", "content": [{"type": "text", "text": system}]},
+        {"role": "scene", "content": [{"type": "text", "text": item} for item in scene_items]},
     ]
     if ref_audio:
         # Cloning is a one-turn example: the clip's transcript, then the clip as the model's reply.
@@ -160,7 +173,7 @@ def generate(a: argparse.Namespace, device: str) -> tuple[torch.Tensor, float, f
     model = HiggsAudioV2ForConditionalGeneration.from_pretrained(MODEL_DIR, device_map=device, dtype=dtype)
     load_s = time.time() - t0
 
-    conversation = build_conversation(a.text, a.scene, a.ref_audio, a.ref_text)
+    conversation = build_conversation(a.text, a.scene, a.ref_audio, a.ref_text, a.speaker)
     inputs = processor.apply_chat_template(
         conversation, add_generation_prompt=True, tokenize=True, return_dict=True, return_tensors="pt"
     ).to(model.device)
@@ -181,9 +194,12 @@ def generate(a: argparse.Namespace, device: str) -> tuple[torch.Tensor, float, f
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--text", required=True)
+    src = p.add_mutually_exclusive_group(required=True)
+    src.add_argument("--text")
+    src.add_argument("--text-file", help="UTF-8 text file, e.g. a dialogue with [SPEAKER0] / [SPEAKER1] lines")
     p.add_argument("--out", required=True)
     p.add_argument("--scene", default="Audio is recorded from a quiet room.", help="Recording environment")
+    p.add_argument("--speaker", action="append", help='Voice for a dialogue tag, e.g. "SPEAKER0: feminine"; repeat per speaker')
     p.add_argument("--ref-audio", default=None, help="Reference clip to clone the voice from")
     p.add_argument("--ref-text", default=None, help="Transcript of --ref-audio (required with it)")
     p.add_argument("--temperature", type=float, default=0.3)
@@ -193,6 +209,8 @@ def main() -> None:
     p.add_argument("--device", default="auto", help="auto, cuda:0 or cpu (cpu is very slow)")
     p.add_argument("--free-gpu", action="store_true", help="Stop llama-server for the run, restart it after")
     a = p.parse_args()
+    if a.text_file:
+        a.text = Path(a.text_file).read_text(encoding="utf-8").strip()
     if a.ref_audio and not a.ref_text:
         p.error("--ref-audio needs --ref-text, the transcript of the clip")
 
