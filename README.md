@@ -50,3 +50,16 @@ scripts/artpc/             PowerShell and Python files that run on the Art PC
                            install and higgs.py, Qwen3-TTS install and say.py)
 config/openclaw/           OpenClaw config patch for the Speaker agent
 ```
+
+<!-- BEGIN:generation-family -->
+## Related repos
+
+<!-- TODO(Nick): one or two sentences, in your voice, on why these four belong together. -->
+
+| Repo | What it does |
+|---|---|
+| [Film Design System](https://github.com/weeeha/Image-Generation-Pipeline-) | Keeps characters, props and settings consistent across image generations |
+| [Video Generation Pipeline](https://github.com/weeeha/Video-Generation-Pipeline) | Seedance and Runway video generation with reusable reference packs |
+| [Audio Generation Pipeline](https://github.com/weeeha/Audio-Generation-Pipeline) | Local speech, voice cloning and sound effects |
+| Continuity Lab (private, in progress) | Finds and repairs inconsistencies between generated video shots |
+<!-- END:generation-family -->
