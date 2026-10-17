@@ -56,3 +56,18 @@ scripts/artpc/             PowerShell and Python files that run on the Art PC
                            music server start/stop)
 config/openclaw/           OpenClaw config patch for the Speaker agent
 ```
+
+<!-- BEGIN:generation-family -->
+## Related repos
+
+Generated film falls apart when a face, a jacket or a voice changes between shots. Each of these six repos handles one part of keeping it consistent.
+
+| Repo | What it does |
+|---|---|
+| [Film Design System](https://github.com/weeeha/Image-Generation-Pipeline-) | Keeps characters, props and settings consistent across image generations |
+| 3D Models (private) | Generates 3D models from text, with a viewer and gallery |
+| [Scene Builder 3D](https://github.com/weeeha/scene-builder-3d) | Blocks out shots in 3D before anything is generated |
+| [Video Generation Pipeline](https://github.com/weeeha/Video-Generation-Pipeline) | Seedance and Runway video generation with reusable reference packs |
+| [Audio Generation Pipeline](https://github.com/weeeha/Audio-Generation-Pipeline) | Local speech, voice cloning and sound effects |
+| Continuity Lab (private, in progress) | Finds and repairs inconsistencies between generated video shots |
+<!-- END:generation-family -->
