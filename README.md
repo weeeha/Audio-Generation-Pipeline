@@ -54,7 +54,7 @@ config/openclaw/           OpenClaw config patch for the Speaker agent
 <!-- BEGIN:generation-family -->
 ## Related repos
 
-<!-- TODO(Nick): one or two sentences, in your voice, on why these four belong together. -->
+Generated film falls apart when a face, a jacket or a voice changes between shots. Each of these four repos handles one part of keeping it consistent.
 
 | Repo | What it does |
 |---|---|
