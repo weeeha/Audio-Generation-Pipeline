@@ -7,10 +7,10 @@ where each model lives.
 <!-- BEGIN:generation-family -->
 ## Sibling repos
 
-This repo is one of six related repos for AI-generated film work: images, 3D models, 3D
-previs, video, audio, and continuity repair. They stay separate on purpose (different stacks,
-no shared code). The same block sits in all six AGENTS.md files between the
-`generation-family` markers; change it in all six or in none.
+This repo is one of seven related repos for AI-generated film work: images, 3D models, 3D
+previs, cloud video, local video, audio, and continuity repair. They stay separate on purpose
+(different stacks, no shared code). The same block sits in all seven AGENTS.md files between
+the `generation-family` markers; change it in all seven or in none.
 
 | Repo | Local folder (always quote) | What it does | Stack |
 |---|---|---|---|
@@ -18,12 +18,13 @@ no shared code). The same block sits in all six AGENTS.md files between the
 | 3D Models | `~/ClaudeCode Projects/3D Models` | Text-to-3D through Meshy, a three.js viewer and gallery, Blender and procedural models | Next.js, react-three-fiber, Meshy API |
 | Scene Builder 3D | `~/ClaudeCode Projects/scene-builder-3d` | Shot-first 3D previs: build a set, place characters, frame shots with a camera, play the scene back | Vite, React, three.js, browser-only |
 | Video Generation Pipeline | `~/ClaudeCode Projects/Video Generation Pileline` ("Pileline" is the real folder name) | Seedance and Runway clients; reference packs in `library/` | Python CLI |
+| Local Video Pipeline | `~/ClaudeCode Projects/Local-Video-Pipeline` | Local video generation on the Art PC (RTX 3090): Wan 2.2 and MiniMax H3 in ComfyUI, previz command on the Mac | PowerShell, Python CLI |
 | Audio Generation Pipeline | `~/ClaudeCode Projects/Audio-Generation-Pipeline` | Speech (Qwen3-TTS, Higgs Audio v2), voice cloning, sound effects, on the Mac Studio and the Art PC | Python, shell, PowerShell |
 | Continuity Lab | `~/ClaudeCode Projects/Video Lab` | Find and repair inconsistencies between generated video shots | Next.js, SQLite, ffmpeg |
 
 GitHub, all under `weeeha/`: `Image-Generation-Pipeline-` (trailing dash), `scene-builder-3d`,
 `Video-Generation-Pipeline` and `Audio-Generation-Pipeline` are public; `3d-models-playground`
-(the 3D Models repo) and `Video-Lab` are private.
+(the 3D Models repo), `Video-Lab` and `Local-Video-Pipeline` are private.
 
 ### How they connect
 
@@ -41,6 +42,12 @@ No code or data path links them yet; files move by hand. Known, planned and want
   provider-neutral zip (grey guide clip, first frame, camera path, prompt) for manual upload,
   with Seedance as the first target. Its idle prototype, `weeeha/Scene-Builder-v2` (folder
   `Scene Builder V2 (3d editor)`), already packaged shots for Seedance.
+- **Local video ↔ cloud video.** Local Video Pipeline is the local counterpart of Video
+  Generation Pipeline: image-to-video from a first frame and a prompt, rendered on the Art PC
+  GPU instead of through Seedance or Runway. Its `previz` command drops drafts in
+  `~/Movies/Previz`; nothing moves them into the video repo or the Continuity Lab yet. MiniMax
+  H3 drafts are for private previz only, so a distributed shot is made fresh with Wan or a
+  cloud service.
 - **Video → Continuity Lab.** The Lab imports existing clips into a project folder. Its own
   generation backend (`seedance-fal`, via fal.ai) is planned for its plan 5 and is separate
   from the BytePlus client in the video repo.
@@ -51,8 +58,8 @@ No code or data path links them yet; files move by hand. Known, planned and want
 ### Working across repos
 
 - Read the sibling's own AGENTS.md (or README) before changing it. Spend rules differ: image,
-  3D and video generations cost money and need Nick's go; audio runs on the Art PC GPU and
-  can pause llama-server while it runs.
+  3D and cloud video generations cost money and need Nick's go; audio and local video run on
+  the Art PC GPU and can pause llama-server while they run.
 - Don't copy code between repos. When a shared format appears (a canon export, say),
   document it in both repos it connects and update this block.
 - Branch per task in each repo; never push to `main`.
