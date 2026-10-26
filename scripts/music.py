@@ -210,9 +210,10 @@ def main() -> None:
     if a.keep:
         print("--keep ignored with --free-gpu: llama-server must come back.", flush=True)
         a.keep = False
-    # The PC resumes llama-server by itself after this long, in case this client dies mid-run.
+    # The PC resumes llama-server by itself after this long, in case this client dies mid-run. The lease
+    # starts before the server loads, so it covers the start script's ready wait ($readyWait, 20 min) too.
     audio_min = sum(job.seconds * job.takes for job in jobs) / 60
-    lease = 15 + int(2 * audio_min + 0.999)
+    lease = 20 + 15 + int(2 * audio_min + 0.999)
     start_args = ["-Model", a.model, "-LeaseMinutes", str(lease)] + (["-FreeGpu"] if a.free_gpu else [])
     try:
         pc("start-music-server.ps1", *start_args)

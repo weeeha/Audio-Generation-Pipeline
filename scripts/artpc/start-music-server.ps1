@@ -54,10 +54,14 @@ $cmd = "cmd /c `"$settings&& `"$ace\.venv\Scripts\acestep-api.exe`" --host 127.0
 $r = Invoke-CimMethod Win32_Process -MethodName Create -Arguments @{ CommandLine = $cmd; CurrentDirectory = $ace }
 "started pid $($r.ProcessId) with $Model, MAX_CUDA_VRAM=$freeGb; log: $dir\server.log"
 
+# A cold load of the XL model off the G: USB disk takes over 10 minutes (checkpoint shards alone took
+# 6 min on 2026-10-26); a warm one from the Windows file cache about 2. music.py adds this wait to the
+# guard lease, so keep the two in step.
+$readyWait = 1200
 $t = Get-Date
-while (((Get-Date) - $t).TotalSeconds -lt 600) {
+while (((Get-Date) - $t).TotalSeconds -lt $readyWait) {
   Start-Sleep 3
   if (Answers "http://127.0.0.1:$port/v1/models") { "ready on :$port after $([int]((Get-Date) - $t).TotalSeconds) s"; exit 0 }
 }
-"not answering after 600 s; tail of log:"; Get-Content "$dir\server.log" -Tail 30
+"not answering after $readyWait s; tail of log:"; Get-Content "$dir\server.log" -Tail 30
 exit 1
