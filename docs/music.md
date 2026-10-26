@@ -46,11 +46,11 @@ On the Art PC, `--free-gpu` is required. `start-music-server.ps1`:
 
 1. Pauses llama-server through the `llama-hold` flag file (or `schtasks /end` without the watcher), the same way as [`higgs.md`](higgs.md).
 2. Passes the free memory from nvidia-smi as `MAX_CUDA_VRAM`. ACE-Step otherwise sizes itself from the card's total of 24 GB.
-3. Loads the models at startup (`ACESTEP_NO_INIT=false`) and waits up to 10 minutes for the API.
+3. Loads the models at startup (`ACESTEP_NO_INIT=false`) and waits up to 20 minutes for the API. A cold XL load off the G: USB disk took over 10 minutes on 2026-10-26 (6 minutes for the checkpoint shards alone) and failed the old 10-minute wait twice; a warm load from the Windows file cache takes about 2.
 
 `stop-music-server.ps1` stops the server and resumes llama-server. `music.py` calls it in a `finally`, so it also runs when generation fails.
 
-A `finally` on the Mac does not help when the client itself dies. On 2026-10-12 a killed `music.py` left llama-server paused for about 80 minutes. Now `start-music-server.ps1` writes the pause marker with a session token and starts a detached `music-guard.ps1` with a lease (`music.py` sizes it at 15 minutes plus 2 per minute of requested audio). If the marker still carries that token when the lease runs out, the guard runs `stop-music-server.ps1` itself. Tested with a 1-minute lease and the client killed after 20 seconds: the guard stopped ACE-Step and removed the hold flag at 1 minute.
+A `finally` on the Mac does not help when the client itself dies. On 2026-10-12 a killed `music.py` left llama-server paused for about 80 minutes. Now `start-music-server.ps1` writes the pause marker with a session token and starts a detached `music-guard.ps1` with a lease (`music.py` sizes it at the 20-minute ready wait plus 15 minutes plus 2 per minute of requested audio, because the lease starts before the server loads). If the marker still carries that token when the lease runs out, the guard runs `stop-music-server.ps1` itself. Tested with a 1-minute lease and the client killed after 20 seconds: the guard stopped ACE-Step and removed the hold flag at 1 minute.
 
 Deploy the PC scripts with `scp scripts/artpc/*-music-server.ps1 scripts/artpc/music-guard.ps1 mvyho@100.114.149.53:G:/AI/music/`. Set `MUSIC_HOST` to reach the PC another way, such as `mvyho@192.168.100.2` over the direct cable.
 
