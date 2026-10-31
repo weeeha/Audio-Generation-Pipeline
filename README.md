@@ -1,5 +1,13 @@
 # Audio-Generation-Pipeline
 
+**Problem.** Sound for a film needs several kinds of audio (effects, speech, cloned voices, music), each from a different model, spread across a Mac Studio and an RTX 3090 PC whose GPU also serves a language model.
+
+**Idea.** One repo of prompt-in, files-out scripts with a doc per model, driven from the Mac. The Art PC is reached over SSH, and the heavy jobs pause llama-server to get the GPU to themselves.
+
+**Built.** Python and PowerShell scripts for sound effects (Stable Audio 3 small-sfx), speech (Qwen3-TTS on both machines), voice cloning (Higgs Audio v2) and music (ACE-Step 1.5). 40 commits on 9 days, Oct 8 to Oct 30, 2026.
+
+**Decision.** Stable Audio 3 small-sfx for sound effects, because it ships a dedicated SFX checkpoint distilled to 8 steps. The alternatives were ACE-Step (a music model, weak at sound effects), the older Stable Audio Open 1.0 and the cloud ElevenLabs Sound Effects.
+
 Local audio generation on the Mac Studio and the Art PC (RTX 3090).
 
 - [`docs/models.md`](docs/models.md): which models are installed, where, and how to re-download them.
