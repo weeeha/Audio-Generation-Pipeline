@@ -8,6 +8,8 @@
 
 **Decision.** Stable Audio 3 small-sfx for sound effects, because it ships a dedicated SFX checkpoint distilled to 8 steps. The alternatives were ACE-Step (a music model, weak at sound effects), the older Stable Audio Open 1.0 and the cloud ElevenLabs Sound Effects.
 
+![Real run of the Qwen3-TTS server on the Mac: tts-up, one speech request returning a 7.9 second WAV, and its spectrogram and waveform. The terminal output is captured, not mocked.](docs/screenshots/qwen3-tts-run.png)
+
 Local audio generation on the Mac Studio and the Art PC (RTX 3090).
 
 - [`docs/models.md`](docs/models.md): which models are installed, where, and how to re-download them.
